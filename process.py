@@ -65,5 +65,15 @@ total = death_sum_top.sum()[0]
 my_colors = ['lightblue','lightsteelblue','orange','lightcoral','cornsilk','whitesmoke']
 death_sum_top.plot.pie(y="death_covid", figsize=(12,12), title="COVID Death Distribution", autopct=my_format, colors=my_colors)
 
+# View 5 - Weekly Average Death Increase in 2020
+death_2014_2019 = data[(data.index > "2014-01-01") & (data.index < "2019-12-31")].groupby("location").mean()
+death_2020 = data[data.index > "2020-01-01"].groupby("location").mean()
+data_avg_death = pd.DataFrame({"average_weekly_death_2014_2019" : death_2014_2019["death_total"], "average_weekly_death_2020" : death_2020["death_total"]}).astype('int64')
+data_avg_death["increase"] = data_avg_death["average_weekly_death_2020"] / data_avg_death["average_weekly_death_2014_2019"]
+data_avg_top5 = data_avg_death[data_avg_death.index != "United States"].sort_values("increase", ascending=False).head(5)
+data_avg_national = data_avg_death[data_avg_death.index == "United States"]
+data_avg = pd.concat([data_avg_top5, data_avg_national], axis=0)
+data_avg_top5[["average_weekly_death_2014_2019", "average_weekly_death_2020"]].plot.barh(figsize=(12, 6), title="Weekly Average Death Increase in 2020")
+
 # See results
 plt.show()
