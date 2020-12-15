@@ -73,7 +73,14 @@ data_avg_death["increase"] = data_avg_death["average_weekly_death_2020"] / data_
 data_avg_top5 = data_avg_death[data_avg_death.index != "United States"].sort_values("increase", ascending=False).head(5)
 data_avg_national = data_avg_death[data_avg_death.index == "United States"]
 data_avg = pd.concat([data_avg_top5, data_avg_national], axis=0)
-data_avg_top5[["average_weekly_death_2014_2019", "average_weekly_death_2020"]].plot.barh(figsize=(12, 6), title="Weekly Average Death Increase in 2020")
-
+fig, axs = plt.subplots(figsize=(12, 6))
+data_avg_top5[["average_weekly_death_2014_2019", "average_weekly_death_2020"]].plot.barh(ax=axs, title="Weekly Average Death Increase in 2020")
+axs.set_ylabel("Locations")
+axs.set_xlabel("Death Number")
+for index, value in enumerate(data_avg_top5["average_weekly_death_2014_2019"]):
+    plt.text(value + 10, index - .2,  s=f"{value}")
+for index, value in enumerate(data_avg_top5["average_weekly_death_2020"]):
+    plt.text(value + 10, index + .1,  s=f"{value}")
+    
 # See results
 plt.show()
