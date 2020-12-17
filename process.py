@@ -51,6 +51,9 @@ data[(data.index > '2019-01-01') & ((data["location"] == "California"))].plot(fi
 
 # View 3 - COVID Death Distribution
 death_sum = data.loc[data["location"] != "United States", ["location", "death_covid"]].groupby("location").sum().sort_values("death_covid", ascending=False)
+death_sum_ny = death_sum[(death_sum.index == "New York City") | (death_sum.index == "New York")].sum()
+death_sum.at["New York", "death_covid"] = death_sum_ny
+death_sum = death_sum.drop(["New York City"])
 death_sum_top = death_sum.iloc[0:5]
 death_sum_other = death_sum.iloc[6:].sum()
 death_sum_other = death_sum_other.rename("Others")
@@ -64,7 +67,22 @@ for index, value in enumerate(death_sum_top["death_covid"]):
     plt.text(value, index,  s=f"{value}", color="black", fontname='Comic Sans MS', fontsize=12)
     plt.text(value * 0.4, index, s="{0:.2f}%".format(value / total * 100), color="white", fontname='Comic Sans MS', fontsize=12)
 
-# View 4 - Weekly Average Death Increase in 2020
+# View 4 - Covid Death Rate
+population = pd.read_csv("population.csv", index_col="State")
+population = population[["Pop"]]
+death_sum["population"] = population
+death_sum["death_rate_pct"] = death_sum["death_covid"] / death_sum["population"] * 100
+death_rate = death_sum.sort_values("death_rate_pct", ascending=False)
+
+death_rate_top = death_rate.iloc[0:5]
+fig, axs = plt.subplots(figsize=(16, 6))
+death_rate_top["death_rate_pct"].plot.barh(ax=axs, title="COVID Death Rate")
+axs.set_ylabel("Locations")
+axs.set_xlabel("Death Rate")
+for index, value in enumerate(death_rate_top["death_rate_pct"]):
+    plt.text(value, index,  s="{0:.4f}%".format(value), color="black", fontname='Comic Sans MS', fontsize=12)
+
+# View 5 - Weekly Average Death Increase in 2020
 death_2014_2019 = data[(data.index > "2014-01-01") & (data.index < "2019-12-31")].groupby("location").mean()
 death_2020 = data[data.index > "2020-01-01"].groupby("location").mean()
 data_avg_death = pd.DataFrame({"average_weekly_death_2014_2019" : death_2014_2019["death_total"], "average_weekly_death_2020" : death_2020["death_total"]}).astype('int64')
@@ -100,3 +118,6 @@ data_avg_top5.to_hdf('result.h5', key='weekly_average_death', mode='a')
 
 # Save covid death summary data
 death_sum_top.to_hdf('result.h5', key='covid_death_summary', mode='a')
+
+# Save covid death rate data
+death_rate_top.to_hdf('result.h5', key='covid_death_rate', mode='a')
