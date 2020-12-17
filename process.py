@@ -43,29 +43,28 @@ data_non_covid = pd.pivot_table(data,index="date", columns="location", values="d
 # print(data_total)
 
 # --------------------- Data Visualization ---------------------
-# View 1 - Nationwide death in 2020 (COVID vs non-COVID)
-data[(data.index > '2020-01-01') & (data["location"] == "United States")].plot.scatter(x="death_covid", y="death_non_covid", alpha=0.5, title="Nationwide Death in 2020")
-
-# View 2 - New York Death from 2019
+# View 1 - New York Death from 2019
 data[(data.index > '2019-01-01') & ((data["location"] == "New York") | (data["location"] == "New York City"))].plot(figsize=(16,6), title="New York State Death Data 2019-2020")
 
-# View 3 - California Death from 2019
+# View 2 - California Death from 2019
 data[(data.index > '2019-01-01') & ((data["location"] == "California"))].plot(figsize=(16,6), title="California State Death Data 2019-2020")
 
-# View 4 - COVID Death Distribution
-def my_format(x):
-    return '{:.4f}%\n({:.0f})'.format(x, total*x/100)
-
+# View 3 - COVID Death Distribution
 death_sum = data.loc[data["location"] != "United States", ["location", "death_covid"]].groupby("location").sum().sort_values("death_covid", ascending=False)
 death_sum_top = death_sum.iloc[0:5]
 death_sum_other = death_sum.iloc[6:].sum()
 death_sum_other = death_sum_other.rename("Others")
 death_sum_top = death_sum_top.append(death_sum_other)
 total = death_sum_top.sum()[0]
-my_colors = ['lightblue','lightsteelblue','orange','lightcoral','cornsilk','whitesmoke']
-death_sum_top.plot.pie(y="death_covid", figsize=(12,12), title="COVID Death Distribution", autopct=my_format, colors=my_colors)
+fig, axs = plt.subplots(figsize=(16, 6))
+death_sum_top.plot.barh(ax=axs, title="COVID Death Distribution")
+axs.set_ylabel("Locations")
+axs.set_xlabel("Death Number")
+for index, value in enumerate(death_sum_top["death_covid"]):
+    plt.text(value, index,  s=f"{value}", color="black", fontname='Comic Sans MS', fontsize=12)
+    plt.text(value * 0.4, index, s="{0:.2f}%".format(value / total * 100), color="white", fontname='Comic Sans MS', fontsize=12)
 
-# View 5 - Weekly Average Death Increase in 2020
+# View 4 - Weekly Average Death Increase in 2020
 death_2014_2019 = data[(data.index > "2014-01-01") & (data.index < "2019-12-31")].groupby("location").mean()
 death_2020 = data[data.index > "2020-01-01"].groupby("location").mean()
 data_avg_death = pd.DataFrame({"average_weekly_death_2014_2019" : death_2014_2019["death_total"], "average_weekly_death_2020" : death_2020["death_total"]}).astype('int64')
@@ -84,3 +83,20 @@ for index, value in enumerate(data_avg_top5["average_weekly_death_2020"]):
     
 # See results
 plt.show()
+
+# --------------------- Data Persistence ---------------------
+import h5py
+file = h5py.File('result.h5','w')
+g1 = file.create_group("death_data")
+g2 = file.create_group("weekly_average_death")
+g3 = file.create_group("covid_death_summary")
+file.close()
+
+# Save death data 2014-2020
+data.to_hdf('result.h5', key='death_data', mode='a')
+
+# Save weekly average death data
+data_avg_top5.to_hdf('result.h5', key='weekly_average_death', mode='a')
+
+# Save covid death summary data
+death_sum_top.to_hdf('result.h5', key='covid_death_summary', mode='a')
